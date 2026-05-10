@@ -216,8 +216,16 @@ function analyzeAttachments(attachments: string) {
 }
 
 function checkSenderReputation(sender: string) {
-  if (!sender) return { is_suspicious: false, reasons: [], entropy_score: 0 };
-  const lower = sender.toLowerCase();
+  if (!sender || !sender.includes("@")) {
+    return { is_suspicious: false, reasons: [], entropy_score: 0 };
+  }
+  const lower = sender.toLowerCase().trim();
+  // Basic email format check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(lower)) {
+    return { is_suspicious: false, reasons: [], entropy_score: 0 };
+  }
+
   const domainMatch = lower.match(/@([^@]+)$/);
   const domain = domainMatch ? domainMatch[1] : "";
   const localPart = lower.split("@")[0] ?? "";

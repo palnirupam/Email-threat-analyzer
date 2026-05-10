@@ -22,7 +22,7 @@ export const HealthCheckResponse = zod.object({
 export const AnalyzeSpamBody = zod.object({
   email_body: zod.string(),
   subject: zod.string(),
-  sender_email: zod.string(),
+  sender_email: zod.string().email().or(zod.literal("")).optional().default(""),
   attachments: zod.string().nullish(),
 });
 
