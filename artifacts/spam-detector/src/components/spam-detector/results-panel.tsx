@@ -10,6 +10,7 @@ import {
 import { AlertTriangle, CheckCircle, Copy, Check, ChevronDown, Download, FileText, FileCode, ShieldAlert, ScanLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { SafetyAdvisory } from "./safety-advisory";
 
 interface ResultsPanelProps {
   analysis: SpamAnalysis | null;
@@ -249,7 +250,10 @@ export function ResultsPanel({ analysis, sender, subject, isLoading }: ResultsPa
       </div>
 
       {/* Details */}
-      <div className="p-6 flex-1 overflow-y-auto space-y-8">
+      <div className="p-6 flex-1 overflow-y-auto space-y-6">
+
+        {/* Context-aware safety advisory — shown only for spam */}
+        <SafetyAdvisory analysis={analysis} />
 
         {/* Overall Threat Score bar */}
         <div>
