@@ -14,6 +14,8 @@
 
 ![App Preview](screenshots/app-preview.png)
 
+![Score Breakdown & Keyword Highlighting](screenshots/app-results.png)
+
 </div>
 
 ---
