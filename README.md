@@ -120,18 +120,23 @@ pnpm dev:web
 ```
 artifacts/
 ├── api-server/src/
-│   ├── lib/spam-detector.ts    ← core detection engine (all ML logic)
+│   ├── lib/
+│   │   ├── spam-detector.ts    ← core ML engine (Bayesian scoring logic)
+│   │   └── spam-phrases.ts     ← phrase libraries, category weights, heuristics
 │   └── routes/spam.ts          ← POST /api/analyze-spam endpoint
 └── spam-detector/src/
     ├── pages/home.tsx
+    ├── lib/highlight-phrases.ts ← frontend phrase map for keyword highlighting
     └── components/spam-detector/
-        ├── analysis-form.tsx   ← input form with file picker
-        ├── results-panel.tsx   ← verdict + score breakdown chart + export
-        └── history-panel.tsx   ← local history flyout
+        ├── analysis-form.tsx        ← input form with file picker
+        ├── results-panel.tsx        ← verdict + score breakdown chart + export
+        ├── history-panel.tsx        ← local history flyout with sparkline chart
+        ├── highlighted-email-body.tsx ← color-coded keyword highlighter
+        └── safety-advisory.tsx      ← context-aware threat warnings
 lib/
 ├── api-spec/openapi.yaml       ← source-of-truth API contract
 ├── api-client-react/           ← generated React Query hooks
-└── api-schemas/                ← generated Zod schemas
+└── api-zod/                    ← generated Zod validation schemas
 ```
 
 ---
@@ -139,7 +144,7 @@ lib/
 ## How It Works
 
 ```
-User pastes email  →  API scores across 13 categories  →  Instant forensic verdict
+User pastes email  →  API scores across 14 categories  →  Instant forensic verdict
                                                           + Visual breakdown chart
                                                           + Identified risks list
                                                           + Export (CSV/TXT/HTML/PDF)
