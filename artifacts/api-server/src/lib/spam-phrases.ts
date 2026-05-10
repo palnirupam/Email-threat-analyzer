@@ -181,6 +181,6 @@ export const CAT_MAX: Record<string, number> = {
   "Suspicious Links": 0.6,
   "Brand Spoofing": 0.36,
   "Sender Reputation": 0.30,
-  "Content Structure": 0.6,
+  "Content Structure": 0.85,
   "Attachments": 0.55,
 };

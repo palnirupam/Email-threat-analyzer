@@ -215,6 +215,119 @@ function analyzeAttachments(attachments: string) {
   return { detected_attachments: detected, risk_score: Math.min(risk_score, 0.55), has_suspicious };
 }
 
+// ─── Advanced Content Structure Checks ────────────────────────────────────────
+
+/**
+ * Generic/impersonal greetings: mass spam never uses your real name.
+ * "Dear Customer", "Dear Friend", "Hello Dear", "Valued Member" etc.
+ */
+function detectGenericGreeting(text: string): { score: number; issue: string | null } {
+  const patterns = [
+    /\bdear\s+(customer|user|client|member|friend|valued\s+\w+|account\s+holder|sir|madam|beneficiary)\b/i,
+    /\bhello\s+dear\b/i,
+    /\bgreetings\s+(from|dear)/i,
+    /\bATTN\s*:/i,
+    /\bto\s+(whom\s+it\s+may\s+concern|all\s+members)\b/i,
+    /\bdearest\s+(friend|one|beneficiary)\b/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) return { score: 0.12, issue: `Generic/impersonal greeting detected: "${m[0].trim()}"` };
+  }
+  return { score: 0, issue: null };
+}
+
+/**
+ * Rhetorical spam opener questions: classic manipulation tactic.
+ * "Are you tired of being broke?", "Want to earn $5000 a week?"
+ */
+function detectRhetoricalSpamQuestions(text: string): { score: number; count: number } {
+  const patterns = [
+    /are you (tired|struggling|looking|interested|ready|sick)/i,
+    /do you want to (earn|make|get|receive|win|claim)/i,
+    /want to (earn|make|get|be|become|start)/i,
+    /would you like to (earn|make|receive|get|claim)/i,
+    /have you (heard|ever|been|tried|considered)/i,
+    /did you know (you|that|about)/i,
+  ];
+  const hits = patterns.filter((p) => p.test(text));
+  return { score: Math.min(hits.length * 0.08, 0.20), count: hits.length };
+}
+
+/**
+ * Missing unsubscribe/footer signal.
+ * Legitimate marketing emails must include an unsubscribe option (CAN-SPAM).
+ * Absence in a longer email is suspicious.
+ */
+function detectMissingLegitFooter(text: string): boolean {
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 40) return false; // Too short to expect a footer
+  const footerSignals = [
+    /unsubscribe/i, /opt.?out/i, /privacy\s+policy/i,
+    /terms\s+(of\s+)?(service|use)/i, /\baddress\b.*\d{5}/i,
+    /you('re| are) receiving this/i, /remove\s+(me|from)/i,
+  ];
+  return !footerSignals.some((p) => p.test(text));
+}
+
+/**
+ * Whitespace manipulation: spammers insert excessive blank lines
+ * to push suspicious content out of the preview pane.
+ */
+function detectWhitespaceManipulation(text: string): { score: number; issue: string | null } {
+  const lines = text.split("\n");
+  const blankLines = lines.filter((l) => l.trim() === "").length;
+  const ratio = blankLines / Math.max(lines.length, 1);
+  if (ratio > 0.45 && blankLines > 8) {
+    return { score: 0.10, issue: `Excessive whitespace: ${blankLines} blank lines (${Math.round(ratio * 100)}% of content)` };
+  }
+  return { score: 0, issue: null };
+}
+
+/**
+ * Homoglyph / lookalike character attack.
+ * Spammers replace Latin letters with visually identical Cyrillic/Greek chars
+ * to bypass keyword filters while appearing legitimate.
+ */
+function detectHomoglyphAttack(text: string): { score: number; issue: string | null } {
+  // Common Cyrillic homoglyphs that look like Latin letters
+  const cyrillicLookalikes = /[\u0430\u0435\u043E\u043F\u0440\u0441\u0443\u0445\u0446\u0410\u0412\u0415\u041A\u041C\u041D\u041E\u0420\u0421\u0422\u0425]/;
+  // Zero-width characters used to break up keywords
+  const zeroWidth = /[\u200B\u200C\u200D\uFEFF\u00AD]/;
+  if (cyrillicLookalikes.test(text)) {
+    return { score: 0.18, issue: "Homoglyph attack: Cyrillic lookalike characters detected (visual spoofing)" };
+  }
+  if (zeroWidth.test(text)) {
+    return { score: 0.14, issue: "Hidden zero-width characters detected (keyword filter evasion)" };
+  }
+  return { score: 0, issue: null };
+}
+
+/**
+ * Sender-body brand mismatch: email claims to be from a brand
+ * in the body/sign-off but the sender domain doesn't match.
+ * e.g. body says "The Microsoft Team" but sender is @random-domain.xyz
+ */
+function detectBodySignoffMismatch(body: string, senderEmail: string, brandNames: string[]): { score: number; issue: string | null } {
+  if (!senderEmail.includes("@")) return { score: 0, issue: null };
+  const domain = (senderEmail.split("@")[1] ?? "").toLowerCase();
+  const bodyLower = body.toLowerCase();
+  // Patterns like "regards, the paypal team" or "sincerely, amazon support"
+  const signoffPattern = /(regards|sincerely|best|cheers|thanks|thank you)[,.]?\s*[\r\n]*.*?(team|support|security|service|group|dept)/i;
+  const signoffMatch = body.match(signoffPattern);
+  if (!signoffMatch) return { score: 0, issue: null };
+  const signoffText = signoffMatch[0].toLowerCase();
+  for (const brand of brandNames) {
+    if ((bodyLower.includes(brand) || signoffText.includes(brand)) && !domain.includes(brand.split(" ")[0]!)) {
+      const legitimateDomains = ["gmail", "outlook", "yahoo", "hotmail"];
+      if (!legitimateDomains.some((d) => domain.includes(d))) {
+        return { score: 0.16, issue: `Identity mismatch: email signs off as "${brand}" but sender domain is @${domain}` };
+      }
+    }
+  }
+  return { score: 0, issue: null };
+}
+
 function checkSenderReputation(sender: string) {
   if (!sender || !sender.includes("@")) {
     return { is_suspicious: false, reasons: [], entropy_score: 0 };
@@ -410,6 +523,53 @@ export function analyzeSpam(email: EmailData) {
     cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + 0.08, CAT_MAX["Content Structure"]!);
     email_structure_issues.push("Suspiciously short email body");
   }
+
+  // ── 14. Generic greeting ──────────────────────────────────────────────────
+  const greetingCheck = detectGenericGreeting(fullText);
+  if (greetingCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + greetingCheck.score, CAT_MAX["Content Structure"]!);
+    if (greetingCheck.issue) email_structure_issues.push(greetingCheck.issue);
+  }
+
+  // ── 15. Rhetorical spam questions ─────────────────────────────────────────
+  const rhetoricalCheck = detectRhetoricalSpamQuestions(fullText);
+  if (rhetoricalCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + rhetoricalCheck.score, CAT_MAX["Content Structure"]!);
+    email_structure_issues.push(`Rhetorical manipulation questions detected (${rhetoricalCheck.count})`);
+  }
+
+  // ── 16. Missing legitimate footer ─────────────────────────────────────────
+  if (detectMissingLegitFooter(email.email_body)) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + 0.09, CAT_MAX["Content Structure"]!);
+    email_structure_issues.push("No unsubscribe link or footer (violates CAN-SPAM pattern)");
+  }
+
+  // ── 17. Whitespace manipulation ───────────────────────────────────────────
+  const wsCheck = detectWhitespaceManipulation(email.email_body);
+  if (wsCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + wsCheck.score, CAT_MAX["Content Structure"]!);
+    if (wsCheck.issue) email_structure_issues.push(wsCheck.issue);
+  }
+
+  // ── 18. Homoglyph / lookalike character attack ────────────────────────────
+  const homoglyphCheck = detectHomoglyphAttack(email.email_body + " " + email.subject);
+  if (homoglyphCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + homoglyphCheck.score, CAT_MAX["Content Structure"]!);
+    if (homoglyphCheck.issue) email_structure_issues.push(homoglyphCheck.issue);
+    risk_factors.push(homoglyphCheck.issue ?? "Character spoofing detected");
+  }
+
+  // ── 19. Sender-body brand signoff mismatch ────────────────────────────────
+  const signoffCheck = detectBodySignoffMismatch(email.email_body, email.sender_email, BRAND_NAMES);
+  if (signoffCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + signoffCheck.score, CAT_MAX["Content Structure"]!);
+    if (signoffCheck.issue) {
+      email_structure_issues.push(signoffCheck.issue);
+      risk_factors.push(signoffCheck.issue);
+    }
+  }
+
+  cat["Content Structure"] = Math.min(cat["Content Structure"]!, CAT_MAX["Content Structure"]!);
 
   // ── 13. Attachments ───────────────────────────────────────────────────────
   if (email.attachments) {
