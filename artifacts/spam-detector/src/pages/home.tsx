@@ -1,0 +1,116 @@
+import { useState } from "react";
+import { AnalysisForm } from "@/components/spam-detector/analysis-form";
+import { ResultsPanel } from "@/components/spam-detector/results-panel";
+import { HistoryPanel } from "@/components/spam-detector/history-panel";
+import { useHistory, type AnalysisHistory } from "@/hooks/use-history";
+import { useAnalyzeSpam, type EmailInput, type SpamAnalysis } from "@workspace/api-client-react";
+import { Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function Home() {
+  const [currentResult, setCurrentResult] = useState<SpamAnalysis | null>(null);
+  const [currentInput, setCurrentInput] = useState<{ sender: string; subject: string }>({ sender: "", subject: "" });
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  
+  const { history, addHistory, deleteHistory, clearHistory } = useHistory();
+  const { toast } = useToast();
+  
+  const analyzeMutation = useAnalyzeSpam();
+
+  const handleAnalyze = (data: EmailInput) => {
+    analyzeMutation.mutate(
+      { data },
+      {
+        onSuccess: (result) => {
+          setCurrentResult(result);
+          setCurrentInput({ sender: data.sender_email, subject: data.subject });
+          
+          addHistory({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            subject: data.subject,
+            sender: data.sender_email,
+            result,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Analysis Failed",
+            description: "An unexpected error occurred during analysis.",
+            variant: "destructive"
+          });
+        }
+      }
+    );
+  };
+
+  const handleClear = () => {
+    setCurrentResult(null);
+    setCurrentInput({ sender: "", subject: "" });
+  };
+
+  const handleHistorySelect = (item: AnalysisHistory) => {
+    setCurrentResult(item.result);
+    setCurrentInput({ sender: item.sender, subject: item.subject });
+    setIsHistoryOpen(false);
+  };
+
+  return (
+    <div className="min-h-[100dvh] bg-background text-foreground dark selection:bg-primary/30">
+      {/* Top Navbar */}
+      <header className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 h-16 flex items-center gap-3">
+          <Shield className="h-6 w-6 text-primary" />
+          <h1 className="font-mono font-bold tracking-widest uppercase">Spam Detector</h1>
+          <div className="ml-auto flex items-center gap-4">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">System Online</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Form Column */}
+          <div className="lg:col-span-7 bg-card border border-border rounded-lg p-6 shadow-sm">
+            <div className="mb-6 pb-4 border-b border-border">
+              <h2 className="text-xl font-bold tracking-tight mb-2">Input Source Data</h2>
+              <p className="text-muted-foreground text-sm font-mono opacity-80">Provide raw email attributes for forensic classification.</p>
+            </div>
+            
+            <AnalysisForm 
+              onSubmit={handleAnalyze} 
+              onClear={handleClear} 
+              isLoading={analyzeMutation.isPending} 
+            />
+          </div>
+
+          {/* Results Column */}
+          <div className="lg:col-span-5 sticky top-8 h-[calc(100vh-8rem)]">
+            <ResultsPanel 
+              analysis={currentResult} 
+              sender={currentInput.sender} 
+              subject={currentInput.subject} 
+            />
+          </div>
+          
+        </div>
+      </main>
+
+      {/* History Flyout */}
+      <HistoryPanel 
+        history={history} 
+        onSelect={handleHistorySelect}
+        onDelete={deleteHistory}
+        onClear={clearHistory}
+        isOpen={isHistoryOpen}
+        onToggle={() => setIsHistoryOpen(!isHistoryOpen)}
+      />
+    </div>
+  );
+}

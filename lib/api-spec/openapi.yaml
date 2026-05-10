@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: spam
+    description: Email spam detection
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /analyze-spam:
+    post:
+      operationId: analyzeSpam
+      tags: [spam]
+      summary: Analyze email for spam
+      description: Runs multi-layer ML classification on an email and returns a spam verdict with risk details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailInput"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpamAnalysis"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    EmailInput:
+      type: object
+      properties:
+        email_body:
+          type: string
+        subject:
+          type: string
+        sender_email:
+          type: string
+        attachments:
+          type: ["string", "null"]
+      required:
+        - email_body
+        - subject
+        - sender_email
+    ScoreBreakdownItem:
+      type: object
+      properties:
+        category:
+          type: string
+        score:
+          type: number
+        max_score:
+          type: number
+      required:
+        - category
+        - score
+        - max_score
+    SpamAnalysisDetails:
+      type: object
+      properties:
+        suspicious_keywords:
+          type: array
+          items:
+            type: string
+        email_structure_issues:
+          type: array
+          items:
+            type: string
+        sender_reputation_warning:
+          type: ["string", "null"]
+        detected_attachments:
+          type: array
+          items:
+            type: string
+      required:
+        - suspicious_keywords
+        - email_structure_issues
+    SpamAnalysis:
+      type: object
+      properties:
+        isSpam:
+          type: boolean
+        confidence:
+          type: number
+        spam_score:
+          type: number
+        risk_factors:
+          type: array
+          items:
+            type: string
+        score_breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreBreakdownItem"
+        details:
+          $ref: "#/components/schemas/SpamAnalysisDetails"
+      required:
+        - isSpam
+        - confidence
+        - spam_score
+        - risk_factors
+        - score_breakdown
+        - details
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
