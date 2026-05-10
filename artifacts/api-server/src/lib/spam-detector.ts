@@ -185,6 +185,8 @@ function analyzeUrls(text: string) {
     /citibarik|citibanl|c1tibank/i,
     /@.*\//,
     /[^\w]login[^\w].*\.(xyz|tk|ml)/i,
+    // Point 3: Common phishing URL keyword patterns
+    /(login|verify|validate|secure|authenticate|update|confirm)[-_]?(account|session|identity)?/i,
   ];
   const suspiciousUrls = urls.filter((url) => suspiciousPatterns.some((p) => p.test(url)));
   return { count: urls.length, suspicious_count: suspiciousUrls.length, suspiciousUrls };
@@ -217,6 +219,18 @@ function analyzeAttachments(attachments: string) {
     } else if (risky.some((ext) => lower.endsWith(ext))) {
       detected.push(`${file} (potentially risky format)`);
       risk_score += 0.06;
+    }
+
+    // Point 8: Suspicious attachment filename patterns (BEC/invoice fraud)
+    const suspiciousNames = [
+      /invoice/i, /payment/i, /receipt/i, /document/i,
+      /purchase.?order/i, /account.?statement/i, /secure.?document/i,
+    ];
+    if (suspiciousNames.some((p) => p.test(file))) {
+      risk_score += 0.08;
+      if (!detected.some((d) => d.startsWith(file))) {
+        detected.push(`${file} (suspicious filename — invoice/payment lure)`);
+      }
     }
   }
   return { detected_attachments: detected, risk_score: Math.min(risk_score, 0.55), has_suspicious };
@@ -273,6 +287,19 @@ function detectAsciiLookalike(text: string, subject: string): { score: number; i
   return { score: Math.min(score, 0.55), issues };
 }
 
+function detectHtmlObfuscation(text: string): { score: number; issue: string | null } {
+  // Catch 0px fonts, transparent text, white-on-white text, display:none used by attackers to hide keywords
+  const zeroFontMatch = text.match(/font-size\s*:\s*0|font-size\s*:\s*0px|font-size\s*:\s*0pt/i);
+  const displayNoneMatch = text.match(/display\s*:\s*none/i);
+  const transparentMatch = text.match(/color\s*:\s*transparent|opacity\s*:\s*0/i);
+  
+  if (zeroFontMatch) return { score: 0.35, issue: "Zero-font size text obfuscation detected" };
+  if (displayNoneMatch) return { score: 0.25, issue: "Hidden content (display:none) detected" };
+  if (transparentMatch) return { score: 0.30, issue: "Transparent/Invisible text obfuscation detected" };
+  
+  return { score: 0, issue: null };
+}
+
 // ─── Advanced Content Structure Checks ────────────────────────────────────────
 
 /**
@@ -281,12 +308,13 @@ function detectAsciiLookalike(text: string, subject: string): { score: number; i
  */
 function detectGenericGreeting(text: string): { score: number; issue: string | null } {
   const patterns = [
-    /\bdear\s+(customer|user|client|member|friend|valued\s+\w+|account\s+holder|sir|madam|beneficiary)\b/i,
+    /\bdear\s+(customer|user|client|member|friend|valued\s+\w+|account\s+holder|sir|madam|beneficiary|team)\b/i,
     /\bhello\s+dear\b/i,
     /\bgreetings\s+(from|dear)/i,
     /\bATTN\s*:/i,
     /\bto\s+(whom\s+it\s+may\s+concern|all\s+members)\b/i,
     /\bdearest\s+(friend|one|beneficiary)\b/i,
+    /\bdear\s+team\b/i,
   ];
   for (const p of patterns) {
     const m = text.match(p);
@@ -566,14 +594,21 @@ export function analyzeSpam(email: EmailData) {
     risk_factors.push(`Sender reputation issues: ${senderCheck.reasons[0]}`);
   }
 
-  // ── 9. HTML content ───────────────────────────────────────────────────────
+  // ── 9. HTML content & Obfuscation ──────────────────────────────────────────
   const htmlTags = (email.email_body.match(/<[a-z][\s\S]*?>/gi) || []).length;
   if (htmlTags > 0) {
     cat["Content Structure"] += Math.min(htmlTags * 0.08, 0.25);
     email_structure_issues.push(`Contains ${htmlTags} HTML element(s)`);
   }
+  
+  const htmlObfuscationCheck = detectHtmlObfuscation(email.email_body);
+  if (htmlObfuscationCheck.score > 0) {
+    cat["Content Structure"] = Math.min((cat["Content Structure"] ?? 0) + htmlObfuscationCheck.score, CAT_MAX["Content Structure"]!);
+    risk_factors.push(htmlObfuscationCheck.issue!);
+    email_structure_issues.push(htmlObfuscationCheck.issue!);
+  }
 
-  // ── 10. Obfuscation (leet-speak) ──────────────────────────────────────────
+  // ── 10. Text Obfuscation (leet-speak) ─────────────────────────────────────
   const obfHits = OBFUSCATED_TERMS.filter((p) => email.email_body.toLowerCase().includes(p));
   if (obfHits.length > 0) {
     cat["Content Structure"] += obfHits.length * 0.15;
@@ -682,6 +717,36 @@ export function analyzeSpam(email: EmailData) {
     if (activeCatCount >= 4) {
       risk_factors.push(`Multi-vector threat: ${activeCatCount} attack categories detected simultaneously`);
     }
+  }
+  
+  // ── Advanced: Semantic Threat Pairing (Urgency + Consequence) ─────────────
+  // If an email has both Urgency and a specific threat/phishing hook, it is highly malicious.
+  const urgencyScore = cat["Urgency Language"] ?? 0;
+  const phishingScore = cat["Phishing"] ?? 0;
+  const financialScore = cat["Financial Lure"] ?? 0;
+  const corporateScore = cat["Corporate IT Lure"] ?? 0;
+  const personalDataScore = cat["Personal Data"] ?? 0;
+  const suspiciousLinksScore = cat["Suspicious Links"] ?? 0;
+
+  const hasUrgency = urgencyScore > 0.15;
+
+  const hasStrongPhishing =
+    phishingScore > 0.20 ||
+    financialScore > 0.20;
+
+  const hasCorporateThreat =
+    corporateScore > 0.25 &&
+    (
+      personalDataScore > 0.10 ||
+      suspiciousLinksScore > 0.10
+    );
+
+  if (hasUrgency && (hasStrongPhishing || hasCorporateThreat)) {
+    spam_score = Math.min(spam_score + 0.18, 1.0);
+
+    risk_factors.push(
+      "Semantic Pairing: urgency combined with phishing-style threat indicators"
+    );
   }
 
   spam_score = Math.min(Math.max(spam_score, 0), 1);

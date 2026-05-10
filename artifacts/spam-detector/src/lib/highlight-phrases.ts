@@ -177,6 +177,20 @@ const _HIGHLIGHT_PHRASES: PhraseEntry[] = [
   { phrase: "synchronization interval", category: "corporate" },
   { phrase: "infrastructure coordination", category: "corporate" },
   { phrase: "profile session", category: "corporate" },
+  { phrase: "session validation", category: "corporate" },
+  { phrase: "workspace verification", category: "corporate" },
+  { phrase: "environment validation", category: "corporate" },
+  { phrase: "access continuity", category: "corporate" },
+  { phrase: "authentication mapping", category: "corporate" },
+  { phrase: "integrity review", category: "corporate" },
+  { phrase: "session mapping", category: "corporate" },
+  { phrase: "resource availability", category: "corporate" },
+  { phrase: "synchronization confirmation", category: "corporate" },
+  { phrase: "validation procedures", category: "corporate" },
+  { phrase: "authenticated workspace", category: "corporate" },
+  { phrase: "continuity procedures", category: "corporate" },
+  { phrase: "identity synchronization", category: "corporate" },
+  { phrase: "environment reconciliation", category: "corporate" },
 ];
 
 export const HIGHLIGHT_PHRASES = _HIGHLIGHT_PHRASES.sort((a, b) => b.phrase.length - a.phrase.length); // longest first to avoid partial matches
