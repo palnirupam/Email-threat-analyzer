@@ -12,7 +12,7 @@
 
 <br/>
 
-![App Preview](screenshots/app-preview.jpg)
+![App Preview](screenshots/app-preview.png)
 
 </div>
 
