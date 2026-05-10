@@ -2,14 +2,16 @@ import { useState } from "react";
 import { AnalysisForm } from "@/components/spam-detector/analysis-form";
 import { ResultsPanel } from "@/components/spam-detector/results-panel";
 import { HistoryPanel } from "@/components/spam-detector/history-panel";
+import { HighlightedEmailBody } from "@/components/spam-detector/highlighted-email-body";
 import { useHistory, type AnalysisHistory } from "@/hooks/use-history";
 import { useAnalyzeSpam, type EmailInput, type SpamAnalysis } from "@workspace/api-client-react";
-import { Shield } from "lucide-react";
+import { Shield, ScanSearch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [currentResult, setCurrentResult] = useState<SpamAnalysis | null>(null);
   const [currentInput, setCurrentInput] = useState<{ sender: string; subject: string }>({ sender: "", subject: "" });
+  const [analyzedBody, setAnalyzedBody] = useState<string>("");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   const { history, addHistory, deleteHistory, clearHistory } = useHistory();
@@ -24,6 +26,7 @@ export default function Home() {
         onSuccess: (result) => {
           setCurrentResult(result);
           setCurrentInput({ sender: data.sender_email, subject: data.subject });
+          setAnalyzedBody(data.email_body ?? "");
           
           addHistory({
             id: crypto.randomUUID(),
@@ -47,6 +50,7 @@ export default function Home() {
   const handleClear = () => {
     setCurrentResult(null);
     setCurrentInput({ sender: "", subject: "" });
+    setAnalyzedBody("");
   };
 
   const handleHistorySelect = (item: AnalysisHistory) => {
@@ -88,6 +92,19 @@ export default function Home() {
               onClear={handleClear} 
               isLoading={analyzeMutation.isPending} 
             />
+
+            {/* Keyword Highlight Panel — shown after analysis */}
+            {analyzedBody && currentResult && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <ScanSearch className="h-4 w-4 text-primary" />
+                  <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    Threat Keyword Analysis
+                  </h3>
+                </div>
+                <HighlightedEmailBody text={analyzedBody} />
+              </div>
+            )}
           </div>
 
           {/* Results Column */}
