@@ -1,5 +1,5 @@
 // ─── Weighted phrase categories ──────────────────────────────────────────────
-// Each entry: [phrase, weight 0..1]  weight contributes directly to spam_score
+// Each entry: [phrase, weight 0..1]
 
 export const FINANCIAL_LURE: [string, number][] = [
   ["you have won", 0.18], ["you are selected", 0.14], ["you are a winner", 0.18],
@@ -12,7 +12,8 @@ export const FINANCIAL_LURE: [string, number][] = [
   ["western union", 0.18], ["moneygram", 0.16], ["cash prize", 0.18],
   ["free money", 0.18], ["earn extra cash", 0.16], ["get rich", 0.14],
   ["make money fast", 0.18], ["double your money", 0.18], ["investment opportunity", 0.10],
-  ["business proposal", 0.10], ["profit share", 0.12],
+  ["business proposal", 0.10], ["profit share", 0.12], ["offshore account", 0.20],
+  ["secret account", 0.18], ["diplomat funds", 0.22], ["compensation funds", 0.20],
 ];
 
 export const PHISHING: [string, number][] = [
@@ -34,6 +35,8 @@ export const PHISHING: [string, number][] = [
   ["bank account details", 0.22], ["social security", 0.22],
   ["your ssn", 0.26], ["tax refund", 0.16], ["irs notice", 0.16],
   ["government grant", 0.14], ["federal grant", 0.14],
+  ["security alert", 0.16], ["login attempt", 0.14], ["sign-in attempt", 0.14],
+  ["access has been restricted", 0.22], ["your session has expired", 0.18],
 ];
 
 export const MARKETING_SPAM: [string, number][] = [
@@ -47,7 +50,8 @@ export const MARKETING_SPAM: [string, number][] = [
   ["unsubscribe", 0.06], ["opt out", 0.06], ["remove me", 0.06],
   ["buy now", 0.08], ["order now", 0.08], ["shop now", 0.06],
   ["call now", 0.10], ["call today", 0.08], ["reply now", 0.10],
-  ["respond now", 0.10], ["act immediately", 0.14],
+  ["respond now", 0.10], ["act immediately", 0.14], ["you qualify", 0.12],
+  ["pre-approved", 0.14], ["you've been selected", 0.16],
 ];
 
 export const ADULT_GAMBLING: [string, number][] = [
@@ -67,6 +71,7 @@ export const HEALTH_SCAM: [string, number][] = [
   ["detox", 0.06], ["anti-aging", 0.06], ["wrinkle free", 0.10],
   ["work from home", 0.12], ["earn money online", 0.14], ["passive income", 0.10],
   ["financial freedom", 0.10], ["be your own boss", 0.12],
+  ["cure cancer", 0.22], ["reverse diabetes", 0.18], ["big pharma doesn't want", 0.22],
 ];
 
 export const CRYPTO_SCAM: [string, number][] = [
@@ -75,7 +80,24 @@ export const CRYPTO_SCAM: [string, number][] = [
   ["crypto wallet", 0.12], ["send bitcoin", 0.22], ["send crypto", 0.20],
   ["nft mint", 0.14], ["token sale", 0.12], ["ico investment", 0.14],
   ["rugpull", 0.24], ["pump and dump", 0.24], ["guaranteed returns", 0.18],
-  ["1000x returns", 0.22], ["100x profit", 0.20],
+  ["1000x returns", 0.22], ["100x profit", 0.20], ["defi returns", 0.16],
+  ["crypto airdrop", 0.18], ["wallet connect", 0.16], ["seed phrase", 0.26],
+  ["private key", 0.24], ["recover your wallet", 0.22],
+];
+
+// Social engineering — manipulation tactics
+export const SOCIAL_ENGINEERING: [string, number][] = [
+  ["strictly confidential", 0.16], ["do not share", 0.10],
+  ["keep this between us", 0.18], ["this is not a scam", 0.22],
+  ["i am a legitimate", 0.16], ["god bless you", 0.10],
+  ["i am dying", 0.14], ["terminal illness", 0.12],
+  ["my late husband", 0.16], ["my late wife", 0.16],
+  ["transfer of funds", 0.18], ["no strings attached", 0.14],
+  ["mutual benefit", 0.12], ["i selected you", 0.18],
+  ["chosen you specifically", 0.18], ["trustworthy person", 0.16],
+  ["i found your contact", 0.14], ["foreign beneficiary", 0.20],
+  ["next of kin", 0.16], ["your assistance is needed", 0.14],
+  ["keep this confidential", 0.16], ["secret transfer", 0.20],
 ];
 
 // Legitimate signals — reduce spam score
@@ -136,11 +158,13 @@ export const URGENCY_WORDS = [
   "urgent", "immediately", "asap", "hurry", "expire", "expiring",
   "act now", "right now", "today only", "within 24 hours", "within 48 hours",
   "don't delay", "last chance", "final warning", "final notice",
+  "deadline", "overdue", "past due", "response required", "time is running out",
 ];
 
 // Known obfuscated spam terms
 export const OBFUSCATED_TERMS = [
   "v1agra", "c1alis", "fr33", "fr@e", "s3x", "p0rn", "c4sh", "w1n", "pr1ze",
+  "p3nis", "m0ney", "f@ke", "b@nk", "acc0unt",
 ];
 
 // Max possible contribution per category (used for proportional bar width)
@@ -151,6 +175,7 @@ export const CAT_MAX: Record<string, number> = {
   "Adult/Gambling": 0.8,
   "Health Scam": 0.5,
   "Crypto Scam": 0.5,
+  "Social Engineering": 0.7,
   "Personal Data": 0.8,
   "Urgency Language": 0.25,
   "Suspicious Links": 0.6,
