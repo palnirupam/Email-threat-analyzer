@@ -112,7 +112,8 @@ export default function Home() {
             <ResultsPanel 
               analysis={currentResult} 
               sender={currentInput.sender} 
-              subject={currentInput.subject} 
+              subject={currentInput.subject}
+              isLoading={analyzeMutation.isPending}
             />
           </div>
           

@@ -1,13 +1,14 @@
 import type { SpamAnalysis } from "@workspace/api-client-react";
 import { exportAsCsv, exportAsTxt, exportAsHtml, exportAsPdf } from "@/lib/export-utils";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Download, FileText, FileCode, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle, Download, FileText, FileCode, ShieldAlert, ScanLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ResultsPanelProps {
   analysis: SpamAnalysis | null;
   sender: string;
   subject: string;
+  isLoading?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -60,7 +61,72 @@ function ScoreBreakdownChart({ breakdown }: { breakdown: SpamAnalysis["score_bre
   );
 }
 
-export function ResultsPanel({ analysis, sender, subject }: ResultsPanelProps) {
+const SCAN_STEPS = [
+  "Parsing email headers...",
+  "Scanning phrase patterns...",
+  "Analyzing URL signatures...",
+  "Running Bayesian classifier...",
+  "Generating threat verdict...",
+];
+
+function ScanningPanel() {
+  return (
+    <div className="h-full flex flex-col items-center justify-center min-h-[400px] border border-primary/30 rounded-lg bg-card overflow-hidden relative">
+      {/* Sweeping scanline */}
+      <div
+        className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-80"
+        style={{
+          animation: "scanline 0.8s linear infinite",
+          top: 0,
+        }}
+      />
+      <style>{`
+        @keyframes scanline {
+          0%   { top: 0%; opacity: 0; }
+          10%  { opacity: 0.8; }
+          90%  { opacity: 0.8; }
+          100% { top: 100%; opacity: 0; }
+        }
+        @keyframes fadeInStep {
+          from { opacity: 0; transform: translateX(-6px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; } 50% { opacity: 0; }
+        }
+      `}</style>
+
+      <ScanLine className="h-8 w-8 text-primary mb-5 animate-pulse" />
+      <p className="font-mono text-xs uppercase tracking-widest text-primary mb-6">Scanning</p>
+
+      <div className="space-y-2 text-left w-56">
+        {SCAN_STEPS.map((step, i) => (
+          <div
+            key={step}
+            className="flex items-center gap-2 font-mono text-xs text-muted-foreground"
+            style={{
+              opacity: 0,
+              animation: `fadeInStep 0.18s ease forwards`,
+              animationDelay: `${i * 0.09}s`,
+            }}
+          >
+            <span className="text-primary">›</span>
+            {step}
+          </div>
+        ))}
+        {/* Blinking cursor on last line */}
+        <span
+          className="inline-block w-2 h-3 bg-primary ml-4"
+          style={{ animation: "blink 0.7s step-start infinite" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function ResultsPanel({ analysis, sender, subject, isLoading }: ResultsPanelProps) {
+  if (isLoading) return <ScanningPanel />;
+
   if (!analysis) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-muted-foreground min-h-[400px] border border-dashed border-border rounded-lg bg-card/50">
