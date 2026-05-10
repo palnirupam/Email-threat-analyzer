@@ -1,8 +1,15 @@
 import type { SpamAnalysis } from "@workspace/api-client-react";
 import { exportAsCsv, exportAsTxt, exportAsHtml, exportAsPdf } from "@/lib/export-utils";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Download, FileText, FileCode, ShieldAlert, ScanLine } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AlertTriangle, CheckCircle, Copy, Check, ChevronDown, Download, FileText, FileCode, ShieldAlert, ScanLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 interface ResultsPanelProps {
   analysis: SpamAnalysis | null;
@@ -10,7 +17,6 @@ interface ResultsPanelProps {
   subject: string;
   isLoading?: boolean;
 }
-
 const CATEGORY_COLORS: Record<string, string> = {
   "Financial Lure":    "#ef4444",
   "Phishing":          "#f97316",
@@ -58,6 +64,57 @@ function ScoreBreakdownChart({ breakdown }: { breakdown: SpamAnalysis["score_bre
         })}
       </div>
     </div>
+  );
+}
+
+// ─── Copy Button ──────────────────────────────────────────────────────────────
+function CopyButton({ analysis, sender, subject }: { analysis: SpamAnalysis; sender: string; subject: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    const lines = [
+      "═══ Email Threat Analysis Report ═══",
+      `Verdict    : ${analysis.isSpam ? "⚠ SPAM" : "✓ CLEAN"}`,
+      `Threat Score: ${analysis.spam_score}/100`,
+      `Confidence : ${Math.round(analysis.confidence * 100)}%`,
+      `Subject    : ${subject || "N/A"}`,
+      `Sender     : ${sender || "N/A"}`,
+      "",
+      "Risk Factors:",
+      ...(analysis.risk_factors.length > 0
+        ? analysis.risk_factors.map((r) => `  • ${r}`)
+        : ["  None detected"]),
+      "",
+      "Category Breakdown:",
+      ...analysis.score_breakdown.map((b) => `  ${b.category.padEnd(20)} ${b.score}/${b.max_score}`),
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = lines.join("\n");
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className={`h-8 font-mono text-xs transition-colors ${copied ? "border-emerald-500/50 text-emerald-500" : ""}`}
+      onClick={handleCopy}
+    >
+      {copied ? (
+        <><Check className="mr-1.5 h-3 w-3" />Copied!</>
+      ) : (
+        <><Copy className="mr-1.5 h-3 w-3" />Copy</>
+      )}
+    </Button>
   );
 }
 
@@ -148,19 +205,31 @@ export function ResultsPanel({ analysis, sender, subject, isLoading }: ResultsPa
       <div className={`p-6 border-b border-border ${isSpam ? "bg-destructive/10" : "bg-emerald-500/10"}`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Verdict</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" className="h-8 font-mono text-xs" onClick={() => exportAsCsv(analysis, sender, subject)}>
-              <Download className="mr-2 h-3 w-3" /> CSV
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 font-mono text-xs" onClick={() => exportAsTxt(analysis, sender, subject)}>
-              <FileText className="mr-2 h-3 w-3" /> TXT
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 font-mono text-xs" onClick={() => exportAsHtml(analysis, sender, subject)}>
-              <FileCode className="mr-2 h-3 w-3" /> HTML
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 font-mono text-xs" onClick={() => exportAsPdf(analysis, sender, subject)}>
-              <FileText className="mr-2 h-3 w-3" /> PDF
-            </Button>
+          <div className="flex items-center gap-2">
+            <CopyButton analysis={analysis} sender={sender} subject={subject} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 font-mono text-xs">
+                  <Download className="mr-1.5 h-3 w-3" />
+                  Export
+                  <ChevronDown className="ml-1 h-3 w-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="font-mono text-xs">
+                <DropdownMenuItem onClick={() => exportAsCsv(analysis, sender, subject)}>
+                  <Download className="mr-2 h-3.5 w-3.5" /> CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportAsTxt(analysis, sender, subject)}>
+                  <FileText className="mr-2 h-3.5 w-3.5" /> TXT
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportAsHtml(analysis, sender, subject)}>
+                  <FileCode className="mr-2 h-3.5 w-3.5" /> HTML
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportAsPdf(analysis, sender, subject)}>
+                  <FileText className="mr-2 h-3.5 w-3.5" /> PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

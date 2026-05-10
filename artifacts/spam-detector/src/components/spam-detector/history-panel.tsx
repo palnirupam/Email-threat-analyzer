@@ -27,6 +27,101 @@ type ConfirmState =
   | { type: "delete"; id: string; subject: string }
   | { type: "clear" };
 
+// ─── Mini Sparkline Chart ─────────────────────────────────────────────────────
+function SparklineChart({ history }: { history: AnalysisHistory[] }) {
+  if (history.length < 2) return null;
+
+  const W = 240;
+  const H = 52;
+  const PAD = 6;
+  // Reverse so oldest is on the left
+  const scores = [...history].reverse().map((h) => h.result.spam_score);
+  const n = scores.length;
+
+  const xPos = (i: number) => PAD + (i / (n - 1)) * (W - PAD * 2);
+  const yPos = (s: number) => H - PAD - (s / 100) * (H - PAD * 2);
+
+  const polyPoints = scores.map((s, i) => `${xPos(i).toFixed(1)},${yPos(s).toFixed(1)}`).join(" ");
+
+  // Area fill path
+  const areaPath = [
+    `M ${xPos(0).toFixed(1)},${yPos(scores[0]!).toFixed(1)}`,
+    ...scores.slice(1).map((s, i) => `L ${xPos(i + 1).toFixed(1)},${yPos(s).toFixed(1)}`),
+    `L ${xPos(n - 1).toFixed(1)},${H - PAD}`,
+    `L ${xPos(0).toFixed(1)},${H - PAD}`,
+    "Z",
+  ].join(" ");
+
+  const latestScore = scores[scores.length - 1] ?? 0;
+  const latestIsSpam = latestScore > 48;
+
+  return (
+    <div className="px-3 pt-2 pb-3 border-b border-border bg-muted/20">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+          Score Trend
+        </span>
+        <span className="font-mono text-[10px] tabular-nums" style={{ color: latestIsSpam ? "#ef4444" : "#22c55e" }}>
+          Latest: {latestScore}/100
+        </span>
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Spam threshold line at score=48 */}
+        <line
+          x1={PAD} y1={yPos(48)} x2={W - PAD} y2={yPos(48)}
+          stroke="rgba(239,68,68,0.25)" strokeWidth="1" strokeDasharray="3,3"
+        />
+        <text x={W - PAD + 2} y={yPos(48) + 3} fontSize="7" fill="rgba(239,68,68,0.5)" fontFamily="monospace">48</text>
+
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#sparkGrad)" />
+
+        {/* Line */}
+        <polyline
+          points={polyPoints}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Dots — only show for ≤12 points to avoid clutter */}
+        {n <= 12 && scores.map((s, i) => (
+          <circle
+            key={i}
+            cx={xPos(i)}
+            cy={yPos(s)}
+            r={i === n - 1 ? 3.5 : 2.5}
+            fill={s > 48 ? "#ef4444" : "#22c55e"}
+            stroke="hsl(var(--background))"
+            strokeWidth="1.5"
+          >
+            <title>{`Score: ${s}`}</title>
+          </circle>
+        ))}
+      </svg>
+
+      {/* X-axis labels: first and last */}
+      <div className="flex justify-between mt-0.5">
+        <span className="font-mono text-[9px] text-muted-foreground/50">
+          {formatDistanceToNow(history[history.length - 1]!.timestamp, { addSuffix: true })}
+        </span>
+        <span className="font-mono text-[9px] text-muted-foreground/50">now</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Panel ───────────────────────────────────────────────────────────────
 export function HistoryPanel({ history, onSelect, onDelete, onClear, isOpen, onToggle }: HistoryPanelProps) {
   const [confirm, setConfirm] = useState<ConfirmState>({ type: "none" });
 
@@ -53,8 +148,9 @@ export function HistoryPanel({ history, onSelect, onDelete, onClear, isOpen, onT
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 w-80 max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-2rem)] bg-card border border-border shadow-2xl rounded-xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5">
-        <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
+      <div className="fixed bottom-4 right-4 w-80 max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100vh-2rem)] bg-card border border-border shadow-2xl rounded-xl flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5">
+        {/* Header */}
+        <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-mono text-sm font-semibold tracking-wider uppercase">Local Logs</h3>
@@ -78,6 +174,10 @@ export function HistoryPanel({ history, onSelect, onDelete, onClear, isOpen, onT
           </div>
         </div>
 
+        {/* Sparkline trend chart */}
+        {history.length >= 2 && <SparklineChart history={history} />}
+
+        {/* List */}
         <ScrollArea className="flex-1">
           {history.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground font-mono text-xs">
@@ -108,8 +208,20 @@ export function HistoryPanel({ history, onSelect, onDelete, onClear, isOpen, onT
                       <div className="truncate text-xs text-muted-foreground mt-1">
                         {item.sender || "Unknown Sender"}
                       </div>
-                      <div className="text-[10px] text-muted-foreground opacity-60 mt-2 font-mono uppercase">
-                        {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                      <div className="flex items-center gap-2 mt-2">
+                        {/* Mini inline score badge */}
+                        <span
+                          className="font-mono text-[10px] px-1.5 py-0.5 rounded"
+                          style={{
+                            backgroundColor: item.result.spam_score > 48 ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)",
+                            color: item.result.spam_score > 48 ? "#ef4444" : "#22c55e",
+                          }}
+                        >
+                          {item.result.spam_score}/100
+                        </span>
+                        <span className="text-[10px] text-muted-foreground opacity-60 font-mono uppercase">
+                          {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                        </span>
                       </div>
                     </div>
                   </button>
