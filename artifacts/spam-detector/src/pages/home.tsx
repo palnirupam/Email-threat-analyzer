@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AnalysisForm } from "@/components/spam-detector/analysis-form";
 import { ResultsPanel } from "@/components/spam-detector/results-panel";
 import { HistoryPanel } from "@/components/spam-detector/history-panel";
@@ -12,7 +12,10 @@ export default function Home() {
   const [currentResult, setCurrentResult] = useState<SpamAnalysis | null>(null);
   const [currentInput, setCurrentInput] = useState<{ sender: string; subject: string }>({ sender: "", subject: "" });
   const [analyzedBody, setAnalyzedBody] = useState<string>("");
+  const [isScanning, setIsScanning] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const scanStartRef = useRef<number>(0);
+  const MIN_SCAN_MS = 1400; // minimum time the scanner is shown
   
   const { history, addHistory, deleteHistory, clearHistory } = useHistory();
   const { toast } = useToast();
@@ -20,23 +23,30 @@ export default function Home() {
   const analyzeMutation = useAnalyzeSpam();
 
   const handleAnalyze = (data: EmailInput) => {
+    setIsScanning(true);
+    scanStartRef.current = Date.now();
     analyzeMutation.mutate(
       { data },
       {
         onSuccess: (result) => {
-          setCurrentResult(result);
-          setCurrentInput({ sender: data.sender_email, subject: data.subject });
-          setAnalyzedBody(data.email_body ?? "");
-          
-          addHistory({
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            subject: data.subject,
-            sender: data.sender_email,
-            result,
-          });
+          const elapsed = Date.now() - scanStartRef.current;
+          const remaining = Math.max(0, MIN_SCAN_MS - elapsed);
+          setTimeout(() => {
+            setCurrentResult(result);
+            setCurrentInput({ sender: data.sender_email, subject: data.subject });
+            setAnalyzedBody(data.email_body ?? "");
+            setIsScanning(false);
+            addHistory({
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              subject: data.subject,
+              sender: data.sender_email,
+              result,
+            });
+          }, remaining);
         },
         onError: () => {
+          setIsScanning(false);
           toast({
             title: "Analysis Failed",
             description: "An unexpected error occurred during analysis.",
@@ -113,7 +123,7 @@ export default function Home() {
               analysis={currentResult} 
               sender={currentInput.sender} 
               subject={currentInput.subject}
-              isLoading={analyzeMutation.isPending}
+              isLoading={isScanning}
             />
           </div>
           
