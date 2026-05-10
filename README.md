@@ -32,12 +32,14 @@ Paste any suspicious email and get an **instant forensic verdict** — SPAM or C
 | 📊 | **14-Category Score Breakdown Chart** — visual bar chart per threat type |
 | 🧠 | **Advanced Bayesian ML Engine** — 180+ weighted phrases, co-occurrence boost, phrase density & link density scoring |
 | 🎨 | **Threat Keyword Highlighting** — color-coded suspicious phrases by category after analysis |
+| 🛡️ | **Safety Advisory** — context-aware threat warnings when spam detected; category-specific advice (phishing → don't enter credentials, crypto → don't send BTC, etc.) with severity levels: Caution / High Risk / Critical |
+| 📋 | **Copy to Clipboard** — one-click copy of full analysis report (verdict, score, risk factors, breakdown) |
 | 🔗 | **Phishing & URL Detection** — obfuscated links, lookalike domains, URL shorteners |
 | 🏢 | **Brand Spoofing Detection** — PayPal, Google, Amazon, banks and more |
 | 📎 | **Attachment Analysis** — flags `.exe`, `.zip`, `.js` and other risky types |
 | 📧 | **Sender Reputation Engine** — disposable addresses, entropy analysis, free email abuse |
-| 💾 | **Export Results** — CSV, TXT, HTML, PDF |
-| 🕓 | **Local History** — last 20 analyses, per-item delete, clear all |
+| 💾 | **Export Results** — CSV, TXT, HTML, PDF via dropdown |
+| 🕓 | **Local History** — score trend sparkline chart, last 20 analyses, per-item delete |
 | 📁 | **File Picker** — browse to attach filenames for metadata analysis |
 
 ---
