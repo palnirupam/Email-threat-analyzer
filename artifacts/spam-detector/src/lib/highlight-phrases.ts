@@ -9,7 +9,8 @@ export type HighlightCategory =
   | "social"
   | "personal"
   | "marketing"
-  | "health";
+  | "health"
+  | "corporate";
 
 export interface PhraseEntry {
   phrase: string;
@@ -26,10 +27,11 @@ export const CATEGORY_COLORS: Record<HighlightCategory, { bg: string; text: stri
   personal:  { bg: "rgba(236,72,153,0.25)",  text: "#f9a8d4", label: "Personal Data" },
   marketing: { bg: "rgba(234,179,8,0.18)",   text: "#fde68a", label: "Marketing Spam" },
   health:    { bg: "rgba(34,197,94,0.22)",   text: "#86efac", label: "Health Scam" },
+  corporate: { bg: "rgba(56,189,248,0.25)",  text: "#7dd3fc", label: "Corporate IT Lure" },
 };
 
 // Phrases sorted longest-first to avoid partial overlaps during matching
-export const HIGHLIGHT_PHRASES: PhraseEntry[] = [
+const _HIGHLIGHT_PHRASES: PhraseEntry[] = [
   // Phishing
   { phrase: "verify your account", category: "phishing" },
   { phrase: "confirm your account", category: "phishing" },
@@ -147,4 +149,34 @@ export const HIGHLIGHT_PHRASES: PhraseEntry[] = [
   { phrase: "big pharma doesn't want", category: "health" },
   { phrase: "work from home", category: "health" },
   { phrase: "financial freedom", category: "health" },
-].sort((a, b) => b.phrase.length - a.phrase.length); // longest first to avoid partial matches
+
+  // Corporate IT Lure
+  { phrase: "indexing operation", category: "corporate" },
+  { phrase: "archived internal resources", category: "corporate" },
+  { phrase: "retrieval latency", category: "corporate" },
+  { phrase: "synchronized content", category: "corporate" },
+  { phrase: "system reference portal", category: "corporate" },
+  { phrase: "automated retrieval request", category: "corporate" },
+  { phrase: "external endpoint", category: "corporate" },
+  { phrase: "profile token", category: "corporate" },
+  { phrase: "security token", category: "corporate" },
+  { phrase: "digital records service", category: "corporate" },
+  { phrase: "automated resource operations", category: "corporate" },
+
+  // Advanced / Verbose IT Lures
+  { phrase: "reconciliation process", category: "corporate" },
+  { phrase: "reconciliation event", category: "corporate" },
+  { phrase: "distributed collaboration", category: "corporate" },
+  { phrase: "workspace environments", category: "corporate" },
+  { phrase: "workspace environment", category: "corporate" },
+  { phrase: "continuity assurance", category: "corporate" },
+  { phrase: "synchronized metadata", category: "corporate" },
+  { phrase: "configuration metadata", category: "corporate" },
+  { phrase: "integrity validation", category: "corporate" },
+  { phrase: "service coordination portal", category: "corporate" },
+  { phrase: "synchronization interval", category: "corporate" },
+  { phrase: "infrastructure coordination", category: "corporate" },
+  { phrase: "profile session", category: "corporate" },
+];
+
+export const HIGHLIGHT_PHRASES = _HIGHLIGHT_PHRASES.sort((a, b) => b.phrase.length - a.phrase.length); // longest first to avoid partial matches

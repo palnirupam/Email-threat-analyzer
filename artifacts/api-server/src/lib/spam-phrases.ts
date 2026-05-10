@@ -110,7 +110,16 @@ export const CORPORATE_IT_LURE: [string, number][] = [
   ["it service desk", 0.16], ["administrator desk", 0.16],
   ["internal resources", 0.14], ["content categories", 0.12],
   ["automated resource operations", 0.22], ["affect retrieval", 0.18],
-  ["temporarily affect", 0.14], ["completed earlier today", 0.12]
+  ["temporarily affect", 0.14], ["completed earlier today", 0.12],
+  
+  // Advanced / Verbose IT Lures
+  ["reconciliation process", 0.20], ["reconciliation event", 0.20],
+  ["distributed collaboration", 0.18], ["workspace environments", 0.18],
+  ["workspace environment", 0.18], ["continuity assurance", 0.20],
+  ["synchronized metadata", 0.22], ["configuration metadata", 0.22],
+  ["integrity validation", 0.20], ["service coordination portal", 0.24],
+  ["synchronization interval", 0.18], ["infrastructure coordination", 0.22],
+  ["service layers", 0.16], ["profile session", 0.20], ["connected services", 0.14]
 ];
 
 // Legitimate signals — reduce spam score
