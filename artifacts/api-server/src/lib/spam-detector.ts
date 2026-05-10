@@ -175,7 +175,14 @@ function analyzeUrls(text: string) {
     /\.(xyz|tk|ml|ga|cf|top|click|download|loan|work|date|faith|racing|stream|gq)($|\/)/i,
     /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/,
     /[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+\.(com|net|org)/i,
+    // Unicode/digit substitution (existing)
     /paypa[1l]|arnazon|g00gle|micros0ft|app[1l]e/i,
+    // ASCII lookalike combination attacks (rn→m, cl→d, vv→w)
+    /rnicrosoft|rnicrosof|rnicrosoft/i,
+    /paypa[il1][-.]?[il1]/i,
+    /arnazon|anazon|arnazon/i,
+    /vvells.?fargo|vvellsfargo/i,
+    /citibarik|citibanl|c1tibank/i,
     /@.*\//,
     /[^\w]login[^\w].*\.(xyz|tk|ml)/i,
   ];
@@ -213,6 +220,57 @@ function analyzeAttachments(attachments: string) {
     }
   }
   return { detected_attachments: detected, risk_score: Math.min(risk_score, 0.55), has_suspicious };
+}
+
+// ─── ASCII Lookalike / Letter-Combination Spoofing ────────────────────────────
+/**
+ * Detects visual spoofing using ASCII character combinations:
+ *   rn → m  ("rnicrosoft" looks like "microsoft")
+ *   cl → d  ("clrop" looks like "drop")
+ *   vv → w  ("vvire" looks like "wire")
+ * Much harder to detect than Unicode homoglyphs because all characters
+ * are valid ASCII — only the combination is suspicious.
+ */
+function detectAsciiLookalike(text: string, subject: string): { score: number; issues: string[] } {
+  const combined = (text + " " + subject).toLowerCase();
+  const issues: string[] = [];
+  let score = 0;
+
+  const asciiSpoofPatterns: [RegExp, string][] = [
+    // rn → m substitution
+    [/\brnicrosoft\b/i,             "microsoft (rn→m spoofing)"],
+    [/\brnail\b/i,                  "mail (rn→m spoofing)"],
+    [/\brnoney\b/i,                 "money (rn→m spoofing)"],
+    [/\brnaster(card)?\b/i,         "mastercard (rn→m spoofing)"],
+    [/\barnazon\b/i,                "amazon (rn→m spoofing)"],
+    // vv → w substitution
+    [/\bvvells.?fargo\b/i,          "Wells Fargo (vv→w spoofing)"],
+    [/\bvvestern\s+union\b/i,       "Western Union (vv→w spoofing)"],
+    [/\bvvire\s+transfer\b/i,       "wire transfer (vv→w spoofing)"],
+    // i/l/1 mixed substitution
+    [/\bpaypai\b/i,                 "paypal (i→l spoofing)"],
+    [/\bpaypa1\b/i,                 "paypal (1→l spoofing)"],
+    [/\bapp1e\b/i,                  "apple (1→l spoofing)"],
+    [/\bnetfl1x\b/i,                "netflix (1→i spoofing)"],
+    // 0 → o substitution
+    [/\bg00gle\b|\bgo0gle\b/i,      "google (0→o spoofing)"],
+    [/\bmicros0ft\b/i,              "microsoft (0→o spoofing)"],
+    [/\bfaceb00k\b/i,               "facebook (0→o spoofing)"],
+    [/\bwellsfarg0\b/i,             "Wells Fargo (0→o spoofing)"],
+    // Other letter substitutions
+    [/\binstaqram\b/i,              "instagram (q→g spoofing)"],
+    [/\btwltter\b|\btvvitter\b/i,   "twitter (letter spoofing)"],
+    [/\bcitibarik\b|\bc1tibank\b/i, "citibank (letter spoofing)"],
+    [/\bcha5e\b|\bchas3\b/i,        "chase bank (digit spoofing)"],
+  ];
+
+  for (const [pattern, brandNote] of asciiSpoofPatterns) {
+    if (pattern.test(combined)) {
+      issues.push(`ASCII lookalike spoofing: "${brandNote}"`);
+      score += 0.20;
+    }
+  }
+  return { score: Math.min(score, 0.55), issues };
 }
 
 // ─── Advanced Content Structure Checks ────────────────────────────────────────
@@ -484,6 +542,17 @@ export function analyzeSpam(email: EmailData) {
     cat["Brand Spoofing"] = Math.min(spoofCheck.brands.length * 0.18, CAT_MAX["Brand Spoofing"]!);
     risk_factors.push(`Possible brand spoofing: impersonates ${spoofCheck.brands.slice(0, 3).join(", ")}`);
   }
+
+  // ── 7b. ASCII lookalike / letter-combination spoofing ─────────────────────
+  const asciiCheck = detectAsciiLookalike(email.email_body, email.subject);
+  if (asciiCheck.score > 0) {
+    cat["Brand Spoofing"] = Math.min((cat["Brand Spoofing"] ?? 0) + asciiCheck.score, CAT_MAX["Brand Spoofing"]!);
+    for (const issue of asciiCheck.issues) {
+      risk_factors.push(issue);
+      email_structure_issues.push(issue);
+    }
+  }
+
 
   // ── 8. Sender reputation + entropy ───────────────────────────────────────
   const senderCheck = checkSenderReputation(email.sender_email);
