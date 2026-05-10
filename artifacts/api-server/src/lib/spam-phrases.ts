@@ -100,6 +100,19 @@ export const SOCIAL_ENGINEERING: [string, number][] = [
   ["keep this confidential", 0.16], ["secret transfer", 0.20],
 ];
 
+export const CORPORATE_IT_LURE: [string, number][] = [
+  ["indexing operation", 0.22], ["archived internal resources", 0.24],
+  ["retrieval latency", 0.18], ["synchronized content", 0.18],
+  ["system reference portal", 0.20], ["automated retrieval request", 0.24],
+  ["external endpoint", 0.20], ["profile token", 0.24],
+  ["security token", 0.20], ["activity reference", 0.16],
+  ["no response is required", 0.18], ["digital records service", 0.22],
+  ["it service desk", 0.16], ["administrator desk", 0.16],
+  ["internal resources", 0.14], ["content categories", 0.12],
+  ["automated resource operations", 0.22], ["affect retrieval", 0.18],
+  ["temporarily affect", 0.14], ["completed earlier today", 0.12]
+];
+
 // Legitimate signals — reduce spam score
 export const LEGITIMATE_SIGNALS: [string, number][] = [
   ["please let me know", 0.08], ["best regards", 0.07], ["kind regards", 0.07],
@@ -183,4 +196,5 @@ export const CAT_MAX: Record<string, number> = {
   "Sender Reputation": 0.30,
   "Content Structure": 0.85,
   "Attachments": 0.55,
+  "Corporate IT Lure": 0.8,
 };

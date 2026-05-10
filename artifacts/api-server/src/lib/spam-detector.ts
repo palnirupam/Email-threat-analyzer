@@ -1,6 +1,6 @@
 import {
   FINANCIAL_LURE, PHISHING, MARKETING_SPAM, ADULT_GAMBLING,
-  HEALTH_SCAM, CRYPTO_SCAM, SOCIAL_ENGINEERING, LEGITIMATE_SIGNALS,
+  HEALTH_SCAM, CRYPTO_SCAM, SOCIAL_ENGINEERING, CORPORATE_IT_LURE, LEGITIMATE_SIGNALS,
   BRAND_NAMES, SUSPICIOUS_DOMAINS, SUSPICIOUS_TLDS, SUSPICIOUS_SENDER_PATTERNS,
   PERSONAL_DATA_PHRASES, URGENCY_WORDS, OBFUSCATED_TERMS, CAT_MAX,
 } from "./spam-phrases";
@@ -466,7 +466,7 @@ export function analyzeSpam(email: EmailData) {
   const cat: Record<string, number> = {
     "Financial Lure": 0, "Phishing": 0, "Marketing Spam": 0,
     "Adult/Gambling": 0, "Health Scam": 0, "Crypto Scam": 0,
-    "Social Engineering": 0, "Personal Data": 0, "Urgency Language": 0,
+    "Social Engineering": 0, "Corporate IT Lure": 0, "Personal Data": 0, "Urgency Language": 0,
     "Suspicious Links": 0, "Brand Spoofing": 0, "Sender Reputation": 0,
     "Content Structure": 0, "Attachments": 0,
   };
@@ -480,6 +480,7 @@ export function analyzeSpam(email: EmailData) {
     ["Health Scam", HEALTH_SCAM],
     ["Crypto Scam", CRYPTO_SCAM],
     ["Social Engineering", SOCIAL_ENGINEERING],
+    ["Corporate IT Lure", CORPORATE_IT_LURE],
   ];
 
   let totalPhraseMatches = 0;
