@@ -4,6 +4,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import { setBaseUrl } from "@workspace/api-client-react";
+
+// Set API base URL from environment variable (for production deployments)
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+if (apiBaseUrl) {
+  setBaseUrl(apiBaseUrl);
+}
 
 const queryClient = new QueryClient();
 
