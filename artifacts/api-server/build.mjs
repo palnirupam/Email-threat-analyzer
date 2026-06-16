@@ -12,14 +12,14 @@ const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 
 async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
+  const apiDir = path.resolve(artifactDir, "api");
   await rm(distDir, { recursive: true, force: true });
+  await rm(apiDir, { recursive: true, force: true });
 
-  await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
+  const sharedConfig = {
     platform: "node",
     bundle: true,
     format: "esm",
-    outdir: distDir,
     outExtension: { ".js": ".mjs" },
     logLevel: "info",
     // Some packages may not be bundleable, so we externalize them, we can add more here as needed.
@@ -117,6 +117,21 @@ globalThis.__filename = __bannerUrl.fileURLToPath(import.meta.url);
 globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
+  };
+
+  // Build 1: local server (calls app.listen) → dist/
+  await esbuild({
+    ...sharedConfig,
+    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    outdir: distDir,
+  });
+
+  // Build 2: Vercel serverless (exports app) → api/
+  // Vercel auto-detects files in api/ as serverless functions
+  await esbuild({
+    ...sharedConfig,
+    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
+    outdir: apiDir,
   });
 }
 
