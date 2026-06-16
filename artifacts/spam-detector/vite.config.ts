@@ -12,6 +12,15 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 const basePath = process.env.BASE_PATH || "/";
+const apiBaseUrl = process.env.VITE_API_BASE_URL?.trim();
+const allowSameOriginApi = process.env.VITE_ALLOW_SAME_ORIGIN_API === "true";
+
+if (process.env.VERCEL === "1" && !apiBaseUrl && !allowSameOriginApi) {
+  throw new Error(
+    "VITE_API_BASE_URL must be set for Vercel production builds. " +
+    "If /api is served from the same origin, set VITE_ALLOW_SAME_ORIGIN_API=true.",
+  );
+}
 
 export default defineConfig({
   base: basePath,

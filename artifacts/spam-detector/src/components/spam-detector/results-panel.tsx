@@ -123,7 +123,7 @@ const SCAN_STEPS = [
   "Parsing email headers...",
   "Scanning phrase patterns...",
   "Analyzing URL signatures...",
-  "Running Bayesian classifier...",
+  "Fusing heuristic signals...",
   "Generating threat verdict...",
 ];
 

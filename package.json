@@ -6,7 +6,7 @@
     "preinstall": "node -e \"if (process.env.npm_config_user_agent && !process.env.npm_config_user_agent.startsWith('pnpm/')) { console.error('Use pnpm instead'); process.exit(1); }\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm --filter @workspace/api-server --filter @workspace/spam-detector --if-present run typecheck",
+    "typecheck": "pnpm run typecheck:libs && pnpm --workspace-concurrency=1 --filter @workspace/api-server --filter @workspace/spam-detector --if-present run typecheck",
     "dev": "concurrently -n API,WEB -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:web\"",
     "dev:api": "pnpm --filter @workspace/api-server run dev",
     "dev:web": "pnpm --filter @workspace/spam-detector run dev"

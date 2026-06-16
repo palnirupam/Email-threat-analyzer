@@ -2,7 +2,7 @@
 
 # 🛡️ Email Threat Analyzer
 
-### Forensic-grade email threat detection — instant, accurate, no ML service required.
+### Forensic-grade email threat detection — instant, explainable, no trained model required.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -22,7 +22,7 @@
 
 ## What it does
 
-Paste any suspicious email and get an **instant forensic verdict** — SPAM or CLEAN — with a confidence score, threat score out of 100, and a detailed per-category breakdown chart. No internet required, no API keys, no external ML services.
+Paste any suspicious email and get an **instant forensic verdict** — SPAM or CLEAN — with a confidence score, threat score out of 100, and a detailed per-category breakdown chart. No internet required, no API keys, no external model services.
 
 ---
 
@@ -121,7 +121,7 @@ pnpm dev:web
 artifacts/
 ├── api-server/src/
 │   ├── lib/
-│   │   ├── spam-detector.ts    ← core ML engine (Bayesian scoring logic)
+│   │   ├── spam-detector.ts    ← heuristic scoring engine (Bayesian-style signal fusion)
 │   │   └── spam-phrases.ts     ← phrase libraries, category weights, heuristics
 │   └── routes/spam.ts          ← POST /api/analyze-spam endpoint
 └── spam-detector/src/

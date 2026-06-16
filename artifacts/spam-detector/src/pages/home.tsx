@@ -96,7 +96,7 @@ export default function Home() {
           <div className="lg:col-span-7 bg-card border border-border rounded-lg p-6 shadow-sm">
             <div className="mb-6 pb-4 border-b border-border">
               <h2 className="text-xl font-bold tracking-tight mb-2">Input Source Data</h2>
-              <p className="text-muted-foreground text-sm font-mono opacity-80">Provide raw email attributes for forensic classification.</p>
+              <p className="text-muted-foreground text-sm font-mono opacity-80">Provide raw email attributes for heuristic threat scoring.</p>
             </div>
             
             <AnalysisForm 

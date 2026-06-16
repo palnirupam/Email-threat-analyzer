@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { SpamAnalysis } from '@workspace/api-client-react';
 
+const HISTORY_STORAGE_KEY = "spam_detector_history";
+
 export interface AnalysisHistory {
   id: string;
   timestamp: number;
@@ -10,28 +12,45 @@ export interface AnalysisHistory {
   result: SpamAnalysis;
 }
 
+function readHistoryFromStorage(): AnalysisHistory[] {
+  try {
+    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!saved) return [];
+
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHistoryToStorage(history: AnalysisHistory[]) {
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  } catch {
+    // Storage may be full or disabled; keep history in memory only.
+  }
+}
+
+function removeHistoryFromStorage() {
+  try {
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+  } catch {
+    // Storage may be disabled.
+  }
+}
+
 export function useHistory() {
   const [history, setHistory] = useState<AnalysisHistory[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("spam_detector_history");
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved));
-      } catch (e) {
-        // ignore
-      }
-    }
+    setHistory(readHistoryFromStorage());
   }, []);
 
   const addHistory = (item: AnalysisHistory) => {
     setHistory(prev => {
       const newHistory = [item, ...prev].slice(0, 20);
-      try {
-        localStorage.setItem("spam_detector_history", JSON.stringify(newHistory));
-      } catch {
-        // Storage full or disabled — history works in-memory only
-      }
+      writeHistoryToStorage(newHistory);
       return newHistory;
     });
   };
@@ -39,18 +58,14 @@ export function useHistory() {
   const deleteHistory = (id: string) => {
     setHistory(prev => {
       const newHistory = prev.filter(item => item.id !== id);
-      try {
-        localStorage.setItem("spam_detector_history", JSON.stringify(newHistory));
-      } catch {
-        // Storage full or disabled
-      }
+      writeHistoryToStorage(newHistory);
       return newHistory;
     });
   };
 
   const clearHistory = () => {
     setHistory([]);
-    localStorage.removeItem("spam_detector_history");
+    removeHistoryFromStorage();
   };
 
   return { history, addHistory, deleteHistory, clearHistory };

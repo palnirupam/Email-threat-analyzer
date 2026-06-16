@@ -109,7 +109,7 @@ export function useHealthCheck<
 }
 
 /**
- * Runs multi-layer ML classification on an email and returns a spam verdict with risk details
+ * Runs multi-layer heuristic threat scoring on an email and returns a spam verdict with risk details
  * @summary Analyze email for spam
  */
 export const getAnalyzeSpamUrl = () => {
