@@ -1,5 +1,15 @@
 import type { SpamAnalysis } from "@workspace/api-client-react";
 
+/** Escapes special HTML characters to prevent XSS when injecting user data into HTML templates. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function exportAsCsv(analysis: SpamAnalysis, sender: string, subject: string) {
   const headers = [
     "Date", "Sender", "Subject", "Verdict", "Confidence", "Spam Score",
@@ -55,23 +65,23 @@ function buildReportHtml(analysis: SpamAnalysis, sender: string, subject: string
   const date = new Date().toLocaleString();
 
   const riskRows = analysis.risk_factors.length
-    ? analysis.risk_factors.map(r => `<li>${r}</li>`).join("")
+    ? analysis.risk_factors.map(r => `<li>${escapeHtml(r)}</li>`).join("")
     : "<li>None detected</li>";
 
   const keywords = analysis.details.suspicious_keywords.length
-    ? analysis.details.suspicious_keywords.map(k => `<span class="badge">${k}</span>`).join(" ")
+    ? analysis.details.suspicious_keywords.map(k => `<span class="badge">${escapeHtml(k)}</span>`).join(" ")
     : "None";
 
   const structureIssues = analysis.details.email_structure_issues.length
-    ? analysis.details.email_structure_issues.map(i => `<li>${i}</li>`).join("")
+    ? analysis.details.email_structure_issues.map(i => `<li>${escapeHtml(i)}</li>`).join("")
     : "<li>None</li>";
 
   const attachments = (analysis.details.detected_attachments || []).length
-    ? (analysis.details.detected_attachments || []).map(a => `<span class="badge">${a}</span>`).join(" ")
+    ? (analysis.details.detected_attachments || []).map(a => `<span class="badge">${escapeHtml(a)}</span>`).join(" ")
     : "None";
 
   const repWarning = analysis.details.sender_reputation_warning
-    ? `<div class="warning-box">${analysis.details.sender_reputation_warning}</div>`
+    ? `<div class="warning-box">${escapeHtml(analysis.details.sender_reputation_warning)}</div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -132,8 +142,8 @@ function buildReportHtml(analysis: SpamAnalysis, sender: string, subject: string
       <div class="card">
         <div class="card-title">Email Details</div>
         <div style="font-size:13px;line-height:1.8">
-          <div><span style="color:#8b949e">From: </span>${sender || "—"}</div>
-          <div><span style="color:#8b949e">Subject: </span>${subject || "—"}</div>
+          <div><span style="color:#8b949e">From: </span>${escapeHtml(sender) || "—"}</div>
+          <div><span style="color:#8b949e">Subject: </span>${escapeHtml(subject) || "—"}</div>
         </div>
       </div>
     </div>
@@ -174,13 +184,14 @@ export function exportAsHtml(analysis: SpamAnalysis, sender: string, subject: st
 
 export function exportAsPdf(analysis: SpamAnalysis, sender: string, subject: string) {
   const html = buildReportHtml(analysis, sender, subject);
-  const printWindow = window.open("", "_blank");
+  const blob = new Blob([html], { type: "text/html;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, "_blank");
   if (!printWindow) return;
-  printWindow.document.write(html);
-  printWindow.document.close();
   printWindow.onload = () => {
     printWindow.focus();
     printWindow.print();
+    URL.revokeObjectURL(url);
   };
 }
 

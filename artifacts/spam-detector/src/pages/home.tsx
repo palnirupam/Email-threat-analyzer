@@ -41,6 +41,7 @@ export default function Home() {
               timestamp: Date.now(),
               subject: data.subject,
               sender: data.sender_email,
+              email_body: data.email_body ?? "",
               result,
             });
           }, remaining);
@@ -66,6 +67,7 @@ export default function Home() {
   const handleHistorySelect = (item: AnalysisHistory) => {
     setCurrentResult(item.result);
     setCurrentInput({ sender: item.sender, subject: item.subject });
+    setAnalyzedBody(item.email_body ?? "");
     setIsHistoryOpen(false);
   };
 
