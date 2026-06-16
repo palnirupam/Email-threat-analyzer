@@ -101,7 +101,6 @@ async function buildAll() {
       "puppeteer-core",
       "electron",
     ],
-    sourcemap: "linked",
     plugins: [
       // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
       esbuildPluginPino({ transports: ["pino-pretty"] })
@@ -124,6 +123,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     ...sharedConfig,
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
     outdir: distDir,
+    sourcemap: "linked",
   });
 
   // Build 2: Vercel serverless (exports app) → api/
@@ -132,6 +132,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     ...sharedConfig,
     entryPoints: [path.resolve(artifactDir, "src/app.ts")],
     outdir: apiDir,
+    sourcemap: false,
   });
 }
 
